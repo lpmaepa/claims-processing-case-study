@@ -1,0 +1,41 @@
+# Test-classpath override of src/main/resources/application.yml. Spring Boot picks up whichever
+# application.yml appears first on the classpath rather than merging same-named files, so this is
+# a full copy (not a diff) with only the retry/SLA scheduler cadence changed: outbox publishing
+# stays fast so the existing @SpringBootTest classes' Awaitility windows still work, while the
+# retry and SLA schedulers are slowed down to effectively "off" (60s) so they don't interfere with
+# tests that aren't specifically exercising them. ClaimRetryWorkflowIntegrationTest overrides
+# claims.retry.* again via @TestPropertySource to run the retry loop fast, deliberately.
+spring:
+  application:
+    name: claims-processing
+  datasource:
+    url: jdbc:h2:mem:claimsdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+  username: ${DB_USERNAME:sa}
+  password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+claims:
+  outbox:
+    publish-delay-ms: 200
+  retry:
+    max-attempts: 3
+    initial-backoff-ms: 2000
+    backoff-multiplier: 2
+    max-backoff-ms: 30000
+    scheduler-delay-ms: 60000
+  sla:
+    high-priority-minutes: 20
+    standard-minutes: 60
+    check-delay-ms: 60000
